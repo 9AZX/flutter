@@ -352,6 +352,39 @@ TEST_F(WindowManagerTest, CreateModalDialogWindow) {
             parent_window_handle);
 }
 
+TEST_F(WindowManagerTest, DeactivatedRegularWindowDoesNotReactivateItself) {
+  IsolateScope isolate_scope(isolate());
+
+  // Create two regular windows: one that will be deactivated and one that
+  // should retain activation.
+  const int64_t deactivated_view_id =
+      InternalFlutterWindows_WindowManager_CreateRegularWindow(
+          engine_id(), regular_creation_request());
+  const HWND deactivated_window_handle =
+      InternalFlutterWindows_WindowManager_GetTopLevelWindowHandle(
+          engine_id(), deactivated_view_id);
+
+  const int64_t activated_view_id =
+      InternalFlutterWindows_WindowManager_CreateRegularWindow(
+          engine_id(), regular_creation_request());
+  const HWND activated_window_handle =
+      InternalFlutterWindows_WindowManager_GetTopLevelWindowHandle(
+          engine_id(), activated_view_id);
+
+  // Make the second window the active window for this thread.
+  SetActiveWindow(activated_window_handle);
+  ASSERT_EQ(GetActiveWindow(), activated_window_handle);
+
+  // Simulate the first window being deactivated, e.g. because the user clicked
+  // the second window or alt-tabbed to it. A deactivated window must not focus
+  // its own content, as doing so would reactivate it and bring it back to the
+  // top of the z-order, stealing focus from the window the user selected.
+  SendMessage(deactivated_window_handle, WM_ACTIVATE,
+              MAKEWPARAM(WA_INACTIVE, 0), 0);
+
+  EXPECT_EQ(GetActiveWindow(), activated_window_handle);
+}
+
 TEST_F(WindowManagerTest, DialogCanNeverBeFullscreen) {
   IsolateScope isolate_scope(isolate());
 
