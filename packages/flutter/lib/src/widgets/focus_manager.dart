@@ -1858,17 +1858,26 @@ class FocusManager with DiagnosticableTreeMixin, ChangeNotifier {
   FocusNode? _suspendedNode;
 
   void _appLifecycleChange(AppLifecycleState state) {
+    debugPrint(
+      '[ZLIFE] _appLifecycleChange($state) primaryFocus=${_primaryFocus?.debugLabel} '
+      'suspended=${_suspendedNode?.debugLabel} markedForFocus=${_markedForFocus?.debugLabel}',
+    );
     if (state == AppLifecycleState.resumed) {
       if (_primaryFocus != rootScope) {
         assert(_focusDebug(() => 'focus changed while app was paused, ignoring $_suspendedNode'));
+        debugPrint(
+          '[ZLIFE] resume: focus already moved to ${_primaryFocus?.debugLabel}, NOT restoring',
+        );
         _suspendedNode = null;
       } else if (_suspendedNode != null) {
         assert(_focusDebug(() => 'requesting focus for $_suspendedNode'));
+        debugPrint('[ZLIFE] resume: RESTORING suspended ${_suspendedNode?.debugLabel}');
         _suspendedNode!.requestFocus();
         _suspendedNode = null;
       }
     } else if (_primaryFocus != rootScope) {
       assert(_focusDebug(() => 'suspending $_primaryFocus'));
+      debugPrint('[ZLIFE] inactive: SUSPENDING ${_primaryFocus?.debugLabel}');
       _markedForFocus = rootScope;
       _suspendedNode = _primaryFocus;
       applyFocusChangesIfNeeded();

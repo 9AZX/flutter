@@ -228,6 +228,10 @@ class _ViewState extends State<View> with WidgetsBindingObserver {
     if (_viewHasFocus == _scopeNode.hasFocus || !_scopeNode.hasFocus) {
       return;
     }
+    debugPrint(
+      '[ZLIFE] view ${widget.view.viewId} -> requestViewFocusChange(focused) '
+      '(scope.hasFocus=${_scopeNode.hasFocus} _viewHasFocus=$_viewHasFocus)',
+    );
     // Scope has gained focus, and it doesn't match the view focus, so inform
     // the view so it knows to change its focus.
     WidgetsBinding.instance.platformDispatcher.requestViewFocusChange(
@@ -239,6 +243,10 @@ class _ViewState extends State<View> with WidgetsBindingObserver {
 
   @override
   void didChangeViewFocus(ViewFocusEvent event) {
+    debugPrint(
+      '[ZLIFE] view ${widget.view.viewId} didChangeViewFocus(state=${event.state} '
+      'eventViewId=${event.viewId} dir=${event.direction})',
+    );
     _viewHasFocus = switch (event.state) {
       ViewFocusState.focused => event.viewId == widget.view.viewId,
       ViewFocusState.unfocused => false,
