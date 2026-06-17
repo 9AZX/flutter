@@ -1858,26 +1858,36 @@ class FocusManager with DiagnosticableTreeMixin, ChangeNotifier {
   FocusNode? _suspendedNode;
 
   void _appLifecycleChange(AppLifecycleState state) {
+    String id(FocusNode? n) => n == null
+        ? 'null'
+        : '${n.runtimeType}#${n.hashCode}${identical(n, rootScope) ? '(ROOT)' : ''}';
     debugPrint(
-      '[ZLIFE] _appLifecycleChange($state) primaryFocus=${_primaryFocus?.debugLabel} '
-      'suspended=${_suspendedNode?.debugLabel} markedForFocus=${_markedForFocus?.debugLabel}',
+      '[ZLIFE] _appLifecycleChange($state) primaryFocus=${id(_primaryFocus)} '
+      'suspended=${id(_suspendedNode)} markedForFocus=${id(_markedForFocus)}',
     );
     if (state == AppLifecycleState.resumed) {
       if (_primaryFocus != rootScope) {
         assert(_focusDebug(() => 'focus changed while app was paused, ignoring $_suspendedNode'));
-        debugPrint(
-          '[ZLIFE] resume: focus already moved to ${_primaryFocus?.debugLabel}, NOT restoring',
-        );
+        debugPrint('[ZLIFE] resume: focus already moved (${id(_primaryFocus)}), NOT restoring');
         _suspendedNode = null;
-      } else if (_suspendedNode != null) {
+      } else if (_suspendedNode != null && _markedForFocus == null) {
+        // Only restore the focus that was suspended when the app went inactive
+        // if nothing else has requested focus in the meantime. When the app
+        // resumes because a different window/view was activated, that view has
+        // already requested focus (markedForFocus != null); restoring the
+        // suspended node would steal focus back to the previously focused
+        // window.
         assert(_focusDebug(() => 'requesting focus for $_suspendedNode'));
-        debugPrint('[ZLIFE] resume: RESTORING suspended ${_suspendedNode?.debugLabel}');
+        debugPrint('[ZLIFE] resume: RESTORING suspended ${id(_suspendedNode)}');
         _suspendedNode!.requestFocus();
+        _suspendedNode = null;
+      } else {
+        debugPrint('[ZLIFE] resume: NOT restoring (markedForFocus=${id(_markedForFocus)})');
         _suspendedNode = null;
       }
     } else if (_primaryFocus != rootScope) {
       assert(_focusDebug(() => 'suspending $_primaryFocus'));
-      debugPrint('[ZLIFE] inactive: SUSPENDING ${_primaryFocus?.debugLabel}');
+      debugPrint('[ZLIFE] inactive: SUSPENDING ${id(_primaryFocus)}');
       _markedForFocus = rootScope;
       _suspendedNode = _primaryFocus;
       applyFocusChangesIfNeeded();
